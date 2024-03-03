@@ -1,4 +1,3 @@
-import kiteapp as kt
 import os
 import time
 import datetime
@@ -21,9 +20,8 @@ from utilities import (
     is_sell_order_placed,
     seprate_id,
 )
-
-# logs add
-
+from logger import printing
+print = printing
 
 def main():
     # Initializing Value
@@ -438,3 +436,5 @@ if __name__ == "__main__":
     print(Style.RESET_ALL)
 
     main()
+
+

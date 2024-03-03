@@ -2,7 +2,8 @@ import os
 import msvcrt
 import time
 import CONSTANT
-
+from logger import printing
+print = printing
 
 def clear_screen():
     if os.name == "nt":
@@ -160,3 +161,4 @@ from invoker import (
     get_LTP,
     get_order_history,
 )
+

@@ -1,7 +1,8 @@
 import datetime
 import CONSTANT
 from colorama import Back, Style
-
+from logger import printing
+print = printing
 
 def prepare_data():  # Preparing login auth data
     user_id, password, enctoken = None, None, None
