@@ -1,3 +1,3 @@
 user_id: CE2229
 password: qzpm@#alsk
-enctoken: i dont know testing log
+enctoken: azU89qRzL/MauBWXHci/yvWn3N+Ue4qYyt5VF27d8tdOaF3+D9WGrisb5fVxAmWOq1iRHAN4kpAv3NQxrjtmtym7hal0bjLvFsN1fahC5Z4sCIijDbReUA==
