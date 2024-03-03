@@ -75,7 +75,7 @@ def main():
         print(
             Style.BRIGHT
             + Fore.CYAN
-            + f"LTP({asset}) is ₹ {last_price}"
+            + f"LTP({asset}) is Rs. {last_price}"
             + Style.RESET_ALL
         )
         print(" ")
@@ -84,7 +84,7 @@ def main():
         buy_price = round(float(input("Enter buy price: ")), 2)
         margin_req = buy_qnty * buy_price
         print(" ")
-        print(Back.BLUE + f"Margin needed: ₹ {margin_req}" + Style.RESET_ALL)
+        print(Back.BLUE + f"Margin needed: Rs. {margin_req}" + Style.RESET_ALL)
 
         # Calculating qnty breakdown
         qnty = buy_qnty
