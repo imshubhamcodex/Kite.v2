@@ -1,3 +1,3 @@
 user_id: CE2229
 password: qzpm@#alsk
-enctoken: azU89qRzL/MauBWXHci/yvWn3N+Ue4qYyt5VF27d8tdOaF3+D9WGrisb5fVxAmWOq1iRHAN4kpAv3NQxrjtmtym7hal0bjLvFsN1fahC5Z4sCIijDbReUA==
+enctoken: nIyjnjderjdSNxYd70EWGkfmUyo1TOo7a+kRVr70LmfEhkF4E/hQVSkW51UhYNdl8vNsrvv5MQlzQe3waB/fwt6OHwdYdCaYRV/B3ukSM5Jsqef4cz9G7Q==
