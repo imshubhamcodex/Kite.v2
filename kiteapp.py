@@ -1,7 +1,8 @@
 import json
 import kiteconnect.exceptions as ex
 from kiteconnect import KiteConnect, KiteTicker
-
+from logger import printing
+print = printing
 
 class KiteApp(KiteConnect):
 
@@ -40,6 +41,7 @@ class KiteApp(KiteConnect):
                                         timeout=self.timeout,
                                         proxies=self.proxies)
         except Exception as e:
+            print(e)
             raise e
 
         # Validate the content type.
@@ -58,6 +60,7 @@ class KiteApp(KiteConnect):
 
                 # native Kite errors
                 exp = getattr(ex, data["error_type"], ex.GeneralException)
+                print(exp(data["message"]))
                 raise exp(data["message"], code=r.status_code)
 
             return data["data"]

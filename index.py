@@ -402,6 +402,7 @@ def main():
                 lot_qnty,
                 n_qnty_small,
                 lot_size,
+                amo_or_regular
             )
 
             if is_order_placed:  # Again order placed
