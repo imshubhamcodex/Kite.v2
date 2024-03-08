@@ -260,7 +260,8 @@ def main():
     booked_profit = False
     while qnty_pending >= 0 and len(sl_order_id) * len(limit_order_id) == 0:
         print("Wating for status update...")
-
+        time.sleep(0.05)
+        
         # Reset qnty pending
         if order_placed_flag:
             qnty_pending = 0
@@ -292,7 +293,7 @@ def main():
 
         # Update qnty pending
         if qnty_to_add > 0:
-            qnty_pending = qnty_pending + qnty_to_add
+            qnty_pending = int(qnty_pending) + int(qnty_to_add)
 
         # Checking for SL update status
         changed_ids = []
@@ -316,7 +317,7 @@ def main():
                     qnty_pending = (
                         qnty_pending + order[-1]["pending_quantity"]
                     )  # Update qnty pending
-                    print("Cancelled Qnty: ", order[-1]["cancelled_quantity"])
+                    print("Order Cancelled.  Qnty: ", order[-1]["cancelled_quantity"])
 
             elif order[-1]["status"] == CONSTANT.ORDER_STATUS_COMPLETE:
                 count_complete_order = count_complete_order + 1
@@ -334,9 +335,9 @@ def main():
                     qnty_pending = (
                         qnty_pending + order[-1]["pending_quantity"]
                     )  # Update qnty pending
-                    print("Cancelled Qnty: ", order[-1]["cancelled_quantity"])
+                    print("Order Cancelled.  Qnty: ", order[-1]["cancelled_quantity"])
 
-            elif order[-1]["status"] == "COMPLETE":
+            elif order[-1]["status"] == CONSTANT.ORDER_STATUS_COMPLETE:
                 count_complete_order = count_complete_order + 1
 
         # If all order executed then exit
