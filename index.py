@@ -260,7 +260,7 @@ def main():
     booked_profit = False
     while qnty_pending >= 0 and len(sl_order_id) * len(limit_order_id) == 0:
         print("Wating for status update...")
-        time.sleep(0.05)
+        time.sleep(0.1)
         
         # Reset qnty pending
         if order_placed_flag:
@@ -325,9 +325,13 @@ def main():
         # Checking for LIMIT update status
         for l_id in limit_order_id:
             order = get_order_history(kite, l_id)
-
+            
+            order_price = float(order[-1]["price"])
+            gain_price_trigger = buy_price + CONSTANT.LIMIT_PRICE_GAIN + CONSTANT.LIMIT_PRICE_GAIN_OFFSET
+            last_price = get_LTP(asset, kite)
+            
             if order[-1]["status"] == order_status:
-                if get_LTP(asset, kite) < limit_price:
+                if (last_price < limit_price and order_price >= gain_price_trigger) or (last_price > limit_price and order_price <= gain_price_trigger):
                     order_id = cancel_order_by_id(kite, l_id, amo_or_regular)
                     changed_ids.append(l_id)
                     order = get_order_history(kite, l_id)  # Get history of order

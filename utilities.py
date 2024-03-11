@@ -111,7 +111,19 @@ def set_limit_loss_price(buy_price):  # Setting up limit and loss price
 
     return limit_price, loss_price
 
+def set_limit_gain_price(buy_price): # Setting up limit gain price
+    limit_price = round(buy_price + CONSTANT.LIMIT_PRICE_GAIN, 2)
+    limit_price = round_to_tick_size(limit_price)
+    
+    return limit_price
 
+def set_limit_price(buy_price):
+    limit_price = round(buy_price + CONSTANT.LIMIT_PRICE_OFFSET, 2)
+    limit_price = round_to_tick_size(limit_price)
+    
+    return limit_price
+    
+    
 def is_sell_order_placed(
     asset,
     kite,
@@ -125,7 +137,13 @@ def is_sell_order_placed(
 ):
     last_price = get_LTP(asset, kite)
     order_id_arr = []
-
+    
+    # Setting up limit price
+    buy_price = round(loss_price + CONSTANT.LOSS_PRICE_OFFSET, 2)
+    buy_price = round_to_tick_size(buy_price)
+    if (last_price <= limit_price) and (last_price >=  buy_price + CONSTANT.LIMIT_PRICE_GAIN + CONSTANT.LIMIT_PRICE_GAIN_OFFSET):
+        limit_price = set_limit_gain_price(buy_price)  
+        
     # LIMIT SELL
     if last_price > limit_price:
         order_id_arr = place_sell_limit_order(
