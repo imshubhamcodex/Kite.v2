@@ -111,17 +111,12 @@ def set_limit_loss_price(buy_price):  # Setting up limit and loss price
 
     return limit_price, loss_price
 
-def set_limit_gain_price(buy_price): # Setting up limit gain price
-    limit_price = round(buy_price + CONSTANT.LIMIT_PRICE_GAIN, 2)
-    limit_price = round_to_tick_size(limit_price)
+def set_loss_gain_price(buy_price): # Setting up loss gain price
+    loss_price = round(buy_price + CONSTANT.LOSS_PRICE_GAIN + CONSTANT.LOSS_PRICE_GAIN_OFFSET, 2)
+    loss_price = round_to_tick_size(loss_price)
     
-    return limit_price
+    return loss_price
 
-def set_limit_price(buy_price):
-    limit_price = round(buy_price + CONSTANT.LIMIT_PRICE_OFFSET, 2)
-    limit_price = round_to_tick_size(limit_price)
-    
-    return limit_price
     
     
 def is_sell_order_placed(
@@ -137,12 +132,7 @@ def is_sell_order_placed(
 ):
     last_price = get_LTP(asset, kite)
     order_id_arr = []
-    
-    # Setting up limit price
-    buy_price = round(loss_price + CONSTANT.LOSS_PRICE_OFFSET, 2)
-    buy_price = round_to_tick_size(buy_price)
-    if (last_price <= limit_price) and (last_price >=  buy_price + CONSTANT.LIMIT_PRICE_GAIN + CONSTANT.LIMIT_PRICE_GAIN_OFFSET):
-        limit_price = set_limit_gain_price(buy_price)  
+    buy_price = round(limit_price - CONSTANT.LOSS_PRICE_OFFSET, 2)
         
     # LIMIT SELL
     if last_price > limit_price:
@@ -169,6 +159,21 @@ def is_sell_order_placed(
             lot_size,
             amo_or_regular,
         )
+        
+    # Setting up loss price to gain profit by checking loss_price_gain_trigger
+    elif (last_price >=  buy_price + CONSTANT.LOSS_PRICE_GAIN + CONSTANT.LOSS_PRICE_GAIN_OFFSET) and (last_price < limit_price):
+        loss_price = set_loss_gain_price(buy_price)
+        order_id_arr = place_sell_stoploss_direct_order(
+            kite,
+            loss_price,
+            asset,
+            n_qnty_big,
+            lot_qnty,
+            n_qnty_small,
+            lot_size,
+            amo_or_regular,
+        )
+
 
     return (True if len(order_id_arr) > 0 else False), order_id_arr
 
@@ -176,6 +181,7 @@ def is_sell_order_placed(
 from invoker import (
     place_sell_limit_order,
     place_sell_stoploss_order,
+    place_sell_stoploss_direct_order,
     get_LTP,
     get_order_history,
 )

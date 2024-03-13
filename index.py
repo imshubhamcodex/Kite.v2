@@ -260,7 +260,7 @@ def main():
     booked_profit = False
     while qnty_pending >= 0 and len(sl_order_id) * len(limit_order_id) == 0:
         print("Wating for status update...")
-        time.sleep(0.1)
+        time.sleep(0.05)
         
         # Reset qnty pending
         if order_placed_flag:
@@ -301,7 +301,10 @@ def main():
         count_complete_order = 0
         for sl_id in sl_order_id:
             order = get_order_history(kite, sl_id)
-
+            
+            loss_price_gain_trigger = buy_price + CONSTANT.LOSS_PRICE_GAIN
+            latest_price = get_LTP(asset, kite) 
+            
             if order_status == CONSTANT.ORDER_STATUS_OPEN:
                 order_status_sl = CONSTANT.ORDER_STATUS_TRIGGER_PENDING
 
@@ -309,7 +312,7 @@ def main():
                 order[-1]["status"] == order_status_sl
                 or order[-1]["status"] == CONSTANT.ORDER_STATUS_OPEN_PENDING
             ):
-                if get_LTP(asset, kite) > loss_price:
+                if (latest_price > loss_price and latest_price < loss_price_gain_trigger) or latest_price > limit_price:
                     order_id = cancel_order_by_id(kite, sl_id, amo_or_regular)
                     changed_ids.append(sl_id)
                     order = get_order_history(kite, sl_id)  # Get history of order
@@ -318,20 +321,16 @@ def main():
                         qnty_pending + order[-1]["pending_quantity"]
                     )  # Update qnty pending
                     print("Order Cancelled.  Qnty: ", order[-1]["cancelled_quantity"])
-
+        
             elif order[-1]["status"] == CONSTANT.ORDER_STATUS_COMPLETE:
                 count_complete_order = count_complete_order + 1
 
         # Checking for LIMIT update status
         for l_id in limit_order_id:
             order = get_order_history(kite, l_id)
-            
-            order_price = float(order[-1]["price"])
-            gain_price_trigger = buy_price + CONSTANT.LIMIT_PRICE_GAIN + CONSTANT.LIMIT_PRICE_GAIN_OFFSET
-            last_price = get_LTP(asset, kite)
-            
+
             if order[-1]["status"] == order_status:
-                if (last_price < limit_price and order_price >= gain_price_trigger) or (last_price > limit_price and order_price <= gain_price_trigger):
+                if get_LTP(asset, kite) < limit_price:
                     order_id = cancel_order_by_id(kite, l_id, amo_or_regular)
                     changed_ids.append(l_id)
                     order = get_order_history(kite, l_id)  # Get history of order
@@ -442,5 +441,4 @@ if __name__ == "__main__":
     print(Style.RESET_ALL)
 
     main()
-
 

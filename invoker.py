@@ -137,7 +137,34 @@ def place_sell_limit_order(
     )
     return order_id_arr
 
-
+def place_sell_stoploss_direct_order(
+    kite,
+    loss_price,
+    asset,
+    n_qnty_big,
+    lot_qnty,
+    n_qnty_small,
+    lot_size,
+    amo_or_regular,
+):  # SELL SL DIRECT ORDER
+    
+    trigger_price = loss_price - CONSTANT.TRIGGER_PRICE_OFFSET
+    lower_band_price = loss_price - CONSTANT.LOWER_BAND_PRICE_OFFSET
+    order_id_arr = place_sl_order(
+                    kite,
+                    trigger_price,
+                    lower_band_price,
+                    asset,
+                    n_qnty_big,
+                    lot_qnty,
+                    n_qnty_small,
+                    lot_size,
+                    amo_or_regular,
+                )
+    return order_id_arr
+    
+    
+    
 def place_sell_stoploss_order(
     kite,
     loss_price,
