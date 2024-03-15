@@ -23,6 +23,13 @@ from utilities import (
 from logger import printing
 print = printing
 
+# track ltp for every two seconds
+# then check if price move in rally
+# if yes then place order and see if order executed within 2 seconds
+# if yes then go ahead and setup sl else cancle the order then get updated ltp
+# then again place order and see if order executed within 2 seconds
+# if yes then go ahead and setup sl else cancle the order and repeat whole process from top
+
 def main():
     # Initializing Value
     buy_order_id_arr = []
@@ -63,148 +70,131 @@ def main():
         amo_or_regular = "regular"
     print(" ")
 
-    time.sleep(0.5)
+    time.sleep(0.3)
     clear_screen()
 
     # Taking asset ID Price and Qnty for buy order execution
-    while True:
-        asset = get_asset_id()
-        lot_qnty, lot_size = get_lot_size_n_qnty(asset)
-        last_price = get_LTP(asset, kite)
-
-        print(
-            Style.BRIGHT
-            + Fore.CYAN
-            + f"LTP({asset}) is Rs. {last_price}"
-            + Style.RESET_ALL
-        )
-        print(" ")
-
-        buy_qnty = round(float(input("Enter qnty: ")), 2)
-        buy_price = round(float(input("Enter buy price: ")), 2)
-        margin_req = buy_qnty * buy_price
-        print(" ")
-        print(Back.BLUE + f"Margin needed: Rs. {margin_req}" + Style.RESET_ALL)
-
-        # Calculating qnty breakdown
-        qnty = buy_qnty
-        n_qnty_big = 0
-        n_qnty_small = 0
-        while qnty >= lot_size:
-            if qnty >= lot_qnty:
-                n_qnty_big = int(qnty / lot_qnty)
-                qnty = qnty - n_qnty_big * lot_qnty
-            else:
-                n_qnty_small = int(qnty / lot_size)
-                qnty = qnty - n_qnty_small * lot_size
-
-        print(" ")
-        print(
-            Fore.YELLOW
-            + f"Qnty breakdown: {n_qnty_big} x {lot_qnty} || {n_qnty_small} x {lot_size} >>>>> Net: {n_qnty_big * lot_qnty + n_qnty_small * lot_size} @ Left: {qnty}"
-            + Style.RESET_ALL
-        )
-        print(" ")
-
-        # Place BUY order confirmation
-        place_order = input("Place this BUY order? (y/n) (default y): ")
-        print(" ")
-
-        if place_order.lower() == "y" or len(place_order) == 0:
-            # If yes then place buy order
-            is_order_placed, buy_order_id_arr = is_buy_order_placed(
-                asset,
-                kite,
-                buy_price,
-                n_qnty_big,
-                lot_qnty,
-                n_qnty_small,
-                lot_size,
-                amo_or_regular,
-            )
-
-            if is_order_placed:
-                # Order placed break the loop
-                print(Style.RESET_ALL)
-                break
-        else:
-            # If no then continue asking asset ID price and qnty
-            clear_screen()
-
-    # Checking if placed BUY order has been executed or not
-    exit_main = False
+    asset = get_asset_id()
+    lot_qnty, lot_size = get_lot_size_n_qnty(asset)
+    prev_ltp = -1
     complete_buy_id = []
-    buy_complete_price = []
-    while True:
-        buy_qnty = 0  # Reset buy qnty
-        for buy_id in buy_order_id_arr:
-            order = get_order_history(kite, buy_id)  # Get order history
+    
+    def track_n_place():
+        nonlocal buy_order_id_arr, asset, loss_price, limit_price, buy_price, complete_buy_id 
+        nonlocal n_qnty_big, lot_qnty, n_qnty_small, lot_size, buy_qnty, prev_ltp 
+        
+        while True:
+            current_ltp = get_LTP(asset, kite)
+            print(Style.BRIGHT + Fore.CYAN +
+                f"LTP({asset}) is Rs. {current_ltp}" + Style.RESET_ALL)
+            print(" ")
+
+            if prev_ltp == -1 or current_ltp - prev_ltp < CONSTANT.THRESHOLD_POINTS:
+                prev_ltp = current_ltp
+                continue
+            else:
+                prev_ltp = current_ltp
+
+                buy_qnty = int(CONSTANT.FUNDS / current_ltp)
+                buy_price = current_ltp
+                margin_req = buy_qnty * buy_price
+                print(" ")
+                print(Back.BLUE +
+                    f"Margin needed: Rs. {margin_req} aprox." + Style.RESET_ALL)
+
+                # Calculating qnty breakdown
+                qnty = buy_qnty
+                n_qnty_big = 0
+                n_qnty_small = 0
+                while qnty >= lot_size:
+                    if qnty >= lot_qnty:
+                        n_qnty_big = int(qnty / lot_qnty)
+                        qnty = qnty - n_qnty_big * lot_qnty
+                    else:
+                        n_qnty_small = int(qnty / lot_size)
+                        qnty = qnty - n_qnty_small * lot_size
+
+                print(" ")
+                print(
+                    Fore.YELLOW
+                    + f"Qnty breakdown: {n_qnty_big} x {lot_qnty} || {n_qnty_small} x {lot_size} >>>>> Net: {n_qnty_big * lot_qnty + n_qnty_small * lot_size} @ Left: {qnty}"
+                    + Style.RESET_ALL
+                )
+                print(" ")
+
+                # Place BUY order
+                is_order_placed, buy_order_id_arr = is_buy_order_placed(
+                    asset,
+                    kite,
+                    buy_price,
+                    n_qnty_big,
+                    lot_qnty,
+                    n_qnty_small,
+                    lot_size,
+                    amo_or_regular,
+                )
+
+                if is_order_placed:
+                    break
+
+        # Checking if placed BUY order has been executed or not
+        buy_complete_price = []
+        start_time = time.time()
+        while True:
+            buy_qnty = 0  # Reset buy qnty
+            for buy_id in buy_order_id_arr:
+                order = get_order_history(kite, buy_id)  # Get order history
+
+                if (
+                    order[-1]["status"] == CONSTANT.ORDER_STATUS_COMPLETE
+                ):  # If order completed
+                    complete_buy_id.append(buy_id)
+                    buy_complete_price.append(float(order[-1]["average_price"]))
+                    buy_qnty = buy_qnty + int(
+                        order[-1]["filled_quantity"]
+                    )  # Update buy qnty
 
             if (
-                order[-1]["status"] == CONSTANT.ORDER_STATUS_COMPLETE
-            ):  # If order completed
-                complete_buy_id.append(buy_id)
-                buy_complete_price.append(float(order[-1]["average_price"]))
-                buy_qnty = buy_qnty + int(
-                    order[-1]["filled_quantity"]
-                )  # Update buy qnty
-
-        if (
-            len(complete_buy_id) > 0
-        ):  # If any placed BUY order is completed then break the loop
-            exit_main = False
-            buy_price = sorted(buy_complete_price, reverse=True)[0]
-            limit_price, loss_price = set_limit_loss_price(
-                buy_price
-            )  # Set limit and loss price to define SL and LIMIT orders
-            break
-        else:
-            # Asking to cancel not completed BUY orders
-            user_input = input_with_timeout(
-                "Enter any key to cancel OPEN BUY orders ", 0
-            )
-            if user_input is None:
-                print(" ")
-                print("Wating for BUY order to execute...")
-                print(" ")
-            else:
-                # User pressed key to cancel open buy orders
-                exit_main = True
-                for id in buy_order_id_arr:
-                    order = get_order_history(kite, id)
-                    if (
-                        order[-1]["status"] == CONSTANT.ORDER_STATUS_OPEN
-                        or order[-1]["status"] == CONSTANT.ORDER_STATUS_OPEN_PENDING
-                        or order[-1]["status"] == CONSTANT.ORDER_STATUS_AMO_REQ
-                    ):
-                        order_id = cancel_order_by_id(kite, id, amo_or_regular)
-
+                len(complete_buy_id) > 0
+            ):  # If any placed BUY order is completed then break the loop
+                buy_price = sorted(buy_complete_price, reverse=True)[0]
+                # Set limit and loss price to define SL and LIMIT orders
+                limit_price, loss_price = set_limit_loss_price(buy_price)
                 break
 
-    if exit_main:  # Hard Exit
-        print(" ")
-        print(Back.BLUE + "ALL OPEN BUY ORDERS CANCELLED." + Style.RESET_ALL)
-        print(" ")
-        print(Back.RED + "HARD EXIT." + Style.RESET_ALL)
-        return
+            current_time = time.time()
+            if current_time - start_time >= 3:
+                break
 
-    # Remove completed order ID from buy_order_id_arr [only open order id are here if any]
-    for id in complete_buy_id:
-        buy_order_id_arr.remove(id)
+    if (len(complete_buy_id) == 0):
+        print("No buy order executed, if orders are placed, it will be cancled")
+        for id in buy_order_id_arr:
+            order = get_order_history(kite, id)
+            if (
+                order[-1]["status"] == CONSTANT.ORDER_STATUS_OPEN
+                or order[-1]["status"] == CONSTANT.ORDER_STATUS_OPEN_PENDING
+                or order[-1]["status"] == CONSTANT.ORDER_STATUS_AMO_REQ
+            ):
+                order_id = cancel_order_by_id(kite, id, amo_or_regular)
+                
+                
+        prev_ltp = get_LTP(asset, kite)     
+        time.sleep(2)
+        track_n_place()
+        
+    else:   # Buy orders are executed
+        # Remove completed order ID from buy_order_id_arr [only open order id are here if any]
+        for id in complete_buy_id:
+            buy_order_id_arr.remove(id)
 
-    count_buy_complete_order = 0
-    for order_id in complete_buy_id:
-        count_buy_complete_order = count_buy_complete_order + 1
-        print(
-            Back.GREEN
-            + f"BUY LIMIT ORDER EXECUTED: {count_buy_complete_order}/{len(complete_buy_id)} [{order_id}] @{datetime.datetime.now()}"
-            + Style.RESET_ALL
-        )
-
-    print(" ")
-    print(Back.BLUE + f"Total qnty placed: {buy_qnty}" + Style.RESET_ALL)
-    print(" ")
-    print(Back.RED + "Proceeding to SELL." + Style.RESET_ALL)
+        count_buy_complete_order = 0
+        for order_id in complete_buy_id:
+            count_buy_complete_order = count_buy_complete_order + 1
+            print(
+                Back.GREEN
+                + f"BUY LIMIT ORDER EXECUTED: {count_buy_complete_order}/{len(complete_buy_id)} [{order_id}] @{datetime.datetime.now()}"
+                + Style.RESET_ALL
+            )
 
     while True:
         # Caculating lot size and quantity for SELL
@@ -252,6 +242,8 @@ def main():
             print("Limit price: ", limit_price)
             print("Loss price: ", loss_price)
 
+
+
     print("Checking for SELL or BUY status update.")
     sl_order_id, limit_order_id = seprate_id(sell_order_id_arr, kite)
     qnty_pending = n_qnty_big * lot_qnty + n_qnty_small * lot_size
@@ -261,7 +253,7 @@ def main():
     while qnty_pending >= 0 and len(sl_order_id) * len(limit_order_id) == 0:
         print("Wating for status update...")
         time.sleep(0.1)
-        
+
         # Reset qnty pending
         if order_placed_flag:
             qnty_pending = 0
@@ -301,10 +293,11 @@ def main():
         count_complete_order = 0
         for sl_id in sl_order_id:
             order = get_order_history(kite, sl_id)
-            
-            loss_price_gain_trigger = buy_price + CONSTANT.LOSS_PRICE_GAIN + CONSTANT.LOSS_PRICE_GAIN_OFFSET - CONSTANT.LOWER_BAND_PRICE_OFFSET
-            latest_price = get_LTP(asset, kite) 
-            
+
+            loss_price_gain_trigger = buy_price + CONSTANT.LOSS_PRICE_GAIN + \
+                CONSTANT.LOSS_PRICE_GAIN_OFFSET - CONSTANT.LOWER_BAND_PRICE_OFFSET
+            latest_price = get_LTP(asset, kite)
+
             if order_status == CONSTANT.ORDER_STATUS_OPEN:
                 order_status_sl = CONSTANT.ORDER_STATUS_TRIGGER_PENDING
 
@@ -315,13 +308,15 @@ def main():
                 if (latest_price > loss_price and latest_price < loss_price_gain_trigger) or (latest_price > limit_price):
                     order_id = cancel_order_by_id(kite, sl_id, amo_or_regular)
                     changed_ids.append(sl_id)
-                    order = get_order_history(kite, sl_id)  # Get history of order
+                    order = get_order_history(
+                        kite, sl_id)  # Get history of order
                     freed_qnty.append(order[-1]["pending_quantity"])
                     qnty_pending = (
                         qnty_pending + order[-1]["pending_quantity"]
                     )  # Update qnty pending
-                    print("Order Cancelled.  Qnty: ", order[-1]["cancelled_quantity"])
-        
+                    print("Order Cancelled.  Qnty: ",
+                          order[-1]["cancelled_quantity"])
+
             elif order[-1]["status"] == CONSTANT.ORDER_STATUS_COMPLETE:
                 count_complete_order = count_complete_order + 1
 
@@ -333,12 +328,14 @@ def main():
                 if get_LTP(asset, kite) < limit_price:
                     order_id = cancel_order_by_id(kite, l_id, amo_or_regular)
                     changed_ids.append(l_id)
-                    order = get_order_history(kite, l_id)  # Get history of order
+                    order = get_order_history(
+                        kite, l_id)  # Get history of order
                     freed_qnty.append(order[-1]["pending_quantity"])
                     qnty_pending = (
                         qnty_pending + order[-1]["pending_quantity"]
                     )  # Update qnty pending
-                    print("Order Cancelled.  Qnty: ", order[-1]["cancelled_quantity"])
+                    print("Order Cancelled.  Qnty: ",
+                          order[-1]["cancelled_quantity"])
 
             elif order[-1]["status"] == CONSTANT.ORDER_STATUS_COMPLETE:
                 count_complete_order = count_complete_order + 1
@@ -441,4 +438,3 @@ if __name__ == "__main__":
     print(Style.RESET_ALL)
 
     main()
-
