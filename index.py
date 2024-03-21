@@ -141,6 +141,8 @@ def main():
         # Checking if placed BUY order has been executed or not
         buy_complete_price = []
         start_time = time.time()
+        time.sleep(0.02)
+        
         while True:
             buy_qnty = 0  # Reset buy qnty
             for buy_id in buy_order_id_arr:
