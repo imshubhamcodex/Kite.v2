@@ -84,9 +84,10 @@ def main():
         nonlocal n_qnty_big, lot_qnty, n_qnty_small, lot_size, buy_qnty, prev_ltp 
         
         while True:
+            time.sleep(1.8) #After every two seconds
             current_ltp = get_LTP(asset, kite)
             print(Style.BRIGHT + Fore.CYAN +
-                f"LTP({asset}) is Rs. {current_ltp}" + Style.RESET_ALL)
+                f"LTP({asset}) is Rs. {current_ltp}. Difference: {current_ltp - prev_ltp}" + Style.RESET_ALL)
             print(" ")
 
             if prev_ltp == -1 or current_ltp - prev_ltp < CONSTANT.THRESHOLD_POINTS:
